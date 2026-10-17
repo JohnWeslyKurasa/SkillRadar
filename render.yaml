@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: skill-gap-radar
+    runtime: python
+    region: oregon
+    plan: free
+
+    # Root of the repo is skillRadr/, backend lives one level in
+    rootDir: backend
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /api/health
+
+    # Auto-deploy on every push to main
+    autoDeploy: true
+
+    envVars:
+      # ── Required secrets — set these in Render Dashboard → Environment ──
+      - key: MONGODB_URI
+        sync: false           # never commit; fill in Render dashboard
+
+      - key: ADZUNA_APP_ID
+        sync: false
+
+      - key: ADZUNA_APP_KEY
+        sync: false
+
+      # ── Non-secret defaults (safe to commit) ──
+      - key: MONGODB_DB_NAME
+        value: skillradar
+
+      - key: ADZUNA_COUNTRY
+        value: us
+
+      - key: ADZUNA_BASE_URL
+        value: https://api.adzuna.com/v1/api/jobs
+
+      - key: ADZUNA_RESULTS_PER_PAGE
+        value: "50"
+
+      - key: DEBUG
+        value: "false"
+
+      - key: CORS_ORIGINS
+        value: "*"
+
+      - key: APP_NAME
+        value: Skill Gap Radar
+
+      - key: APP_VERSION
+        value: "1.0.0"
+
+      - key: REPORT_TTL_DAYS
+        value: "30"
+
+      - key: MIN_POSTINGS_THRESHOLD
+        value: "10"
