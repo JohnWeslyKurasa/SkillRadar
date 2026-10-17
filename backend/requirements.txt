@@ -1,0 +1,23 @@
+# ── Core framework ────────────────────────────────────────────────────────────
+fastapi==0.115.8
+uvicorn[standard]==0.34.0          # ASGI server (includes watchfiles for --reload)
+
+# ── MongoDB ────────────────────────────────────────────────────────────────────
+motor==3.7.0                       # Async MongoDB driver (wraps PyMongo with asyncio)
+pymongo==4.11.1                    # motor's peer dependency (keep versions in sync)
+
+# ── Config / environment ───────────────────────────────────────────────────────
+pydantic-settings==2.8.0           # Settings class that reads from .env
+python-dotenv==1.0.1               # Load .env in local dev (pydantic-settings uses it)
+
+# ── HTTP client (for Adzuna API calls in Phase 2) ─────────────────────────────
+httpx==0.28.1                      # Async-native HTTP client; cleaner than requests+asyncio
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dateutil==2.9.0             # Robust datetime parsing for job posting dates
+jinja2==3.1.5                      # HTML templating for Phase 8 server-rendered dashboard
+
+# ── Dev / testing (not needed on Render) ──────────────────────────────────────
+# pytest==8.x
+# pytest-asyncio==0.25.x
+# httpx  (already above — used as test client with TestClient)
