@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} — Skill Gap Radar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-white text-gray-900 min-h-screen flex items-center justify-center">
+    <div class="max-w-lg w-full px-6 py-16 text-center">
+
+        <!-- Status icon -->
+        {% if status == "not_found" %}
+        <div class="text-5xl mb-4">&#8709;</div>
+        {% elif status in ("pending", "processing") %}
+        <div class="text-5xl mb-4">&#9203;</div>
+        {% else %}
+        <div class="text-5xl mb-4">&#9888;</div>
+        {% endif %}
+
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ heading }}</h1>
+        <p class="text-gray-500 text-sm">{{ message }}</p>
+
+        {% if status in ("pending", "processing") %}
+        <p class="mt-6 text-xs text-gray-400">
+            Refresh this page in a few seconds, or use the API:
+            <code class="bg-gray-100 px-1 rounded">/api/report/{{ slug }}</code>
+        </p>
+        {% endif %}
+
+        <div class="mt-8">
+            <a href="/" class="text-sm text-blue-600 hover:underline">
+                &larr; Run a new analysis
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="fixed bottom-0 left-0 right-0 border-t border-gray-100 py-3 text-center text-xs text-gray-400">
+        Skill Gap Radar &nbsp;·&nbsp; Data sourced from live job postings via Adzuna.
+    </footer>
+</body>
+
+</html>

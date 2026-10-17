@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ meta.target_role }} — Skill Gap Radar</title>
+
+  <!-- Open Graph — server-rendered per report -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{{ meta.target_role }} — {{ meta.total_jobs }} Jobs Analyzed | Skill Gap Radar" />
+  <meta property="og:description" content="Top skills: {{ chart_labels[:3] | join(', ') }}. {{ meta.confidence }}" />
+  <meta property="og:url" content="{{ request.url }}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ─── Reset ───────────────────────────────────────── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* ─── Page ────────────────────────────────────────── */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F5F3FF;
+      color: #111827;
+      min-height: 100vh;
+    }
+
+    /* ─── Topbar ──────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 56px;
+      background: rgba(255, 255, 255, .90);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+    }
+
+    .topbar-logo {
+      font-size: 15px;
+      font-weight: 700;
+      color: #4F46E5;
+      letter-spacing: -.01em;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-date {
+      font-size: 13px;
+      color: #9CA3AF;
+    }
+
+    .copy-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #4F46E5;
+      background: #EEF2FF;
+      border: 1px solid #C7D2FE;
+      border-radius: 8px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background .18s, box-shadow .18s;
+    }
+
+    .copy-btn:hover {
+      background: #E0E7FF;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, .15);
+    }
+
+    /* ─── Main layout ─────────────────────────────────── */
+    .main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 52px 24px 100px;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    /* ─── Section label ───────────────────────────────── */
+    .sec-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #9CA3AF;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #E5E7EB;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Hero ────────────────────────────────────────── */
+    .hero-eye {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #4F46E5;
+      margin-bottom: 10px;
+    }
+
+    h1.hero-role {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -.025em;
+      color: #111827;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+
+    .hero-meta {
+      font-size: 16px;
+      color: #6B7280;
+    }
+
+    .hero-meta strong {
+      color: #374151;
+      font-weight: 600;
+    }
+
+    .badges {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 13px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-green {
+      background: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+    }
+
+    .badge-amber {
+      background: #FFFBEB;
+      color: #D97706;
+      border: 1px solid #FDE68A;
+    }
+
+    .badge-conf {
+      background: #fff;
+      color: #9CA3AF;
+      border: 1px solid #E5E7EB;
+      animation: conf-glow 4s ease-in-out infinite;
+    }
+
+    @keyframes conf-glow {
+
+      0%,
+      100% {
+        box-shadow: none;
+        border-color: #E5E7EB;
+      }
+
+      50% {
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, .1);
+        border-color: #C7D2FE;
+      }
+    }
+
+    /* ─── Stat cards ──────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 640px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid #E5E7EB;
+      border-left: 3px solid;
+      border-radius: 12px;
+      padding: 22px 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise .5s cubic-bezier(.22, .68, 0, 1.15) forwards;
+      transition: transform .2s, box-shadow .2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .09);
+    }
+
+    .stat-card:nth-child(1) {
+      animation-delay: .05s;
+      border-left-color: #4F46E5;
+    }
+
+    .stat-card:nth-child(2) {
+      animation-delay: .13s;
+      border-left-color: #EF4444;
+    }
+
+    .stat-card:nth-child(3) {
+      animation-delay: .21s;
+      border-left-color: #F59E0B;
+    }
+
+    .stat-card:nth-child(4) {
+      animation-delay: .29s;
+      border-left-color: #10B981;
+    }
+
+    @keyframes rise {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #9CA3AF;
+    }
+
+    .stat-num {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      margin-top: 8px;
+    }
+
+    .c-indigo {
+      color: #4F46E5;
+    }
+
+    .c-red {
+      color: #EF4444;
+    }
+
+    .c-amber {
+      color: #F59E0B;
+    }
+
+    .c-green {
+      color: #10B981;
+    }
+
+    /* ─── Chart card ──────────────────────────────────── */
+    .chart-card {
+      background: #fff;
+      border: 1px solid #E5E7EB;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
+      opacity: 0;
+      transform: translateY(12px);
+      animation: rise .55s cubic-bezier(.22, .68, 0, 1.15) .35s forwards;
+    }
+
+    /* ─── Priority labels ─────────────────────────────── */
+    .pri-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .pri-red {
+      color: #EF4444;
+    }
+
+    .pri-amber {
+      color: #F59E0B;
+    }
+
+    /* ─── Gap cards ───────────────────────────────────── */
+    .gap-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 18px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #E5E7EB;
+      border-left: 3px solid;
+      opacity: 0;
+      transform: translateX(-8px);
+      animation: slide-in .38s ease forwards;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s;
+    }
+
+    @keyframes slide-in {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .gap-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .09);
+    }
+
+    .gap-card-red {
+      background: #FFF5F5;
+      border-left-color: #EF4444;
+    }
+
+    .gap-card-red:hover {
+      background: #FEF2F2;
+    }
+
+    .gap-card-amber {
+      background: #FFFDF5;
+      border-left-color: #F59E0B;
+    }
+
+    .gap-card-amber:hover {
+      background: #FFFBEB;
+    }
+
+    .gap-skill {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .gap-cat {
+      font-size: 13px;
+      color: #9CA3AF;
+      margin-top: 2px;
+    }
+
+    .gap-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gap-pct-red {
+      font-size: 20px;
+      font-weight: 700;
+      color: #EF4444;
+    }
+
+    .gap-pct-amber {
+      font-size: 20px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+
+    .gap-conf-pill {
+      font-size: 12px;
+      color: #9CA3AF;
+      border: 1px solid #E5E7EB;
+      border-radius: 5px;
+      padding: 2px 9px;
+      background: #F9FAFB;
+    }
+
+    /* ─── Market-only banner ──────────────────────────── */
+    .market-banner {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+    }
+
+    .market-banner-icon {
+      font-size: 16px;
+      color: #D97706;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .market-banner-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #92400E;
+    }
+
+    .market-banner-sub {
+      font-size: 13px;
+      color: #B45309;
+      margin-top: 3px;
+    }
+
+    .no-data {
+      font-size: 14px;
+      color: #9CA3AF;
+      font-style: italic;
+    }
+
+    /* ─── Job cards ───────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    .job-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: #fff;
+      border: 1px solid #E5E7EB;
+      opacity: 0;
+      animation: fade-in .35s ease forwards;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+
+    @keyframes fade-in {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .job-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .10);
+      border-color: #C7D2FE;
+    }
+
+    .job-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
+    }
+
+    .job-company {
+      font-size: 13px;
+      color: #9CA3AF;
+      margin-top: 3px;
+    }
+
+    .job-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4F46E5;
+      background: #EEF2FF;
+      border: 1px solid #C7D2FE;
+      border-radius: 999px;
+      padding: 5px 14px;
+      white-space: nowrap;
+      transition: background .2s, color .2s, transform .2s;
+    }
+
+    .job-card:hover .match-badge {
+      background: #4F46E5;
+      color: #fff;
+      transform: scale(1.06);
+    }
+
+    .view-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4F46E5;
+      border: 1.5px solid #C7D2FE;
+      border-radius: 7px;
+      padding: 6px 16px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .18s, color .18s, border-color .18s;
+    }
+
+    .view-link:hover {
+      background: #4F46E5;
+      color: #fff;
+      border-color: #4F46E5;
+    }
+
+    .more-btn {
+      margin-top: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4F46E5;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: opacity .15s;
+    }
+
+    .more-btn:hover {
+      opacity: .7;
+    }
+
+    /* ─── Footer ──────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid #E5E7EB;
+      margin-top: 80px;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #9CA3AF;
+    }
+
+    .footer code {
+      font-size: 11px;
+      color: #D1D5DB;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <span class="topbar-logo">Skill Gap Radar</span>
+    <div class="topbar-right">
+      <span class="topbar-date">{{ meta.generated_at[:10] }}</span>
+      <button class="copy-btn" onclick="copyLink()">Copy Report Link</button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ── Section 1: Hero + Stat Cards ─────────────────────── -->
+    <section>
+      <p class="hero-eye">Analysis Report</p>
+      <h1 class="hero-role">{{ meta.target_role }}</h1>
+      <p class="hero-meta">
+        {{ meta.location | title }}&nbsp;&middot;&nbsp;
+        <strong>{{ meta.total_jobs }}</strong> job postings analyzed
+      </p>
+
+      <div class="badges">
+        {% if gap_mode == "baseline-driven" %}
+        <span class="badge badge-green">&#10003; Baseline-Driven</span>
+        {% else %}
+        <span class="badge badge-amber">&#9679; Market-Only</span>
+        {% endif %}
+        <span class="badge badge-conf">{{ meta.confidence }}</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-lbl">Jobs Analyzed</div>
+          <div class="stat-num c-indigo" data-count="{{ meta.total_jobs }}">{{ meta.total_jobs }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">High-Priority Gaps</div>
+          <div class="stat-num c-red" data-count="{{ gap_summary.high_priority_gaps }}">{{
+            gap_summary.high_priority_gaps }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Medium Gaps</div>
+          <div class="stat-num c-amber" data-count="{{ gap_summary.medium_priority_gaps }}">{{
+            gap_summary.medium_priority_gaps }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Skills Tracked</div>
+          <div class="stat-num c-green" data-count="{{ gap_summary.total_skills }}">{{ gap_summary.total_skills }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section 2: Top Skills Chart ──────────────────────── -->
+    <section>
+      <div class="sec-label">Top 10 Market Skills</div>
+      {% if chart_labels %}
+      <div class="chart-card">
+        <canvas id="skillsChart" height="300"></canvas>
+      </div>
+      {% else %}
+      <p class="no-data">No frequency data available.</p>
+      {% endif %}
+    </section>
+
+    <!-- ── Section 3: Skill Gaps ─────────────────────────────── -->
+    <section>
+      <div class="sec-label">Skill Gaps</div>
+
+      {% if gap_mode == "market-only" %}
+      <div class="market-banner">
+        <span class="market-banner-icon">&#9888;</span>
+        <div>
+          <div class="market-banner-title">Market-Only Mode — No Baseline Comparison</div>
+          <div class="market-banner-sub">Select your current role on the form to enable gap detection.</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if not high_gaps and not medium_gaps %}
+      <p class="no-data">
+        {% if baseline_supported %}No critical gaps detected — great coverage.
+        {% else %}Gap analysis needs a role baseline. See market demand in the chart above.{% endif %}
+      </p>
+      {% endif %}
+
+      {% if high_gaps %}
+      <div class="pri-label pri-red" style="margin-bottom:12px;">
+        High Priority &nbsp;<span style="font-weight:400;color:#9CA3AF;">&ge; 60% of postings</span>
+      </div>
+      {% for g in high_gaps %}
+      <div class="gap-card gap-card-red" style="animation-delay:{{ loop.index0 * 70 }}ms">
+        <div>
+          <div class="gap-skill">{{ g.skill }}</div>
+          <div class="gap-cat">{{ g.category }}</div>
+        </div>
+        <div class="gap-right">
+          <span class="gap-pct-red">{{ g.frequency_pct }}%</span>
+          <span class="gap-conf-pill">{{ g.confidence }}</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if medium_gaps %}
+      <div class="pri-label pri-amber"
+        style="margin-top:{% if high_gaps %}24px{% else %}0{% endif %};margin-bottom:12px;">
+        Medium Priority &nbsp;<span style="font-weight:400;color:#9CA3AF;">30–59% of postings</span>
+      </div>
+      {% for g in medium_gaps %}
+      <div class="gap-card gap-card-amber" style="animation-delay:{{ (high_gaps|length + loop.index0) * 70 }}ms">
+        <div>
+          <div class="gap-skill">{{ g.skill }}</div>
+          <div class="gap-cat">{{ g.category }}</div>
+        </div>
+        <div class="gap-right">
+          <span class="gap-pct-amber">{{ g.frequency_pct }}%</span>
+          <span class="gap-conf-pill">{{ g.confidence }}</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </section>
+
+    <!-- ── Section 4: Representative Jobs ───────────────────── -->
+    <section>
+      <div class="sec-label">
+        Representative Job Postings
+        <span style="font-weight:400;text-transform:none;font-size:11px;margin-left:4px;">by skill match score</span>
+      </div>
+
+      {% if top_jobs %}
+      <div id="jobs-list">
+        {% for job in top_jobs %}
+        <div class="job-card {% if loop.index > 5 %}hidden job-extra{% endif %}"
+          style="animation-delay:{{ loop.index0 * 45 }}ms">
+          <div style="min-width:0;flex:1;">
+            <div class="job-title">{{ job.title }}</div>
+            <div class="job-company">{% if job.company %}{{ job.company }}{% else %}&mdash;{% endif %}</div>
+          </div>
+          <div class="job-right">
+            <span class="match-badge">{{ job.skill_match_score }}% match</span>
+            {% if job.redirect_url %}
+            <a href="{{ job.redirect_url }}" target="_blank" rel="noopener noreferrer" class="view-link">View &rarr;</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if top_jobs | length > 5 %}
+      <button class="more-btn" id="more-btn" onclick="showAll()">
+        Show all {{ top_jobs | length }} jobs
+      </button>
+      {% endif %}
+      {% else %}
+      <p class="no-data">No representative jobs available.</p>
+      {% endif %}
+    </section>
+
+  </div>
+
+  <footer class="footer">
+    Data sourced from live job postings via Adzuna. Descriptions are not stored.&nbsp;&middot;&nbsp;
+    Report&nbsp;<code>{{ slug }}</code>
+  </footer>
+
+  <script>
+    /* ── Chart ──────────────────────────────────────────── */
+    {% if chart_labels %}
+    (function () {
+      const ctx = document.getElementById('skillsChart').getContext('2d');
+      const grad = ctx.createLinearGradient(500, 0, 0, 0);
+      grad.addColorStop(0, 'rgba(79,70,229,.75)');
+      grad.addColorStop(1, 'rgba(165,180,252,.20)');
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: {{ chart_labels | tojson }},
+    datasets: [{
+      label: 'Frequency (%)',
+      data: {{ chart_values | tojson }},
+      backgroundColor: grad,
+      borderColor: 'rgba(79,70,229,.35)',
+      borderWidth: 1,
+      borderRadius: 5,
+      borderSkipped: false,
+          }]
+        },
+    options: {
+      indexAxis: 'y',
+        responsive: true,
+          maintainAspectRatio: false,
+            animation: { duration: 1200, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111827',
+            borderColor: '#374151',
+              borderWidth: 1,
+                titleColor: '#F9FAFB',
+                  bodyColor: '#9CA3AF',
+                    padding: 12,
+                      cornerRadius: 8,
+                        callbacks: { label: c => ' ' + c.parsed.x.toFixed(1) + '% of job postings' }
+        }
+      },
+      scales: {
+        x: {
+          min: 0, max: 100,
+            ticks: { callback: v => v + '%', color: '#9CA3AF', font: { size: 12, family: 'Inter' } },
+          grid: { color: '#F3F4F6' },
+          border: { color: '#E5E7EB' }
+        },
+        y: {
+          ticks: { color: '#374151', font: { size: 13, family: 'Inter', weight: '500' } },
+          grid: { display: false },
+          border: { color: '#E5E7EB' }
+        }
+      }
+    }
+      });
+    }) ();
+    {% endif %}
+
+    /* ── Stat counters ──────────────────────────────────── */
+    document.querySelectorAll('[data-count]').forEach(el => {
+      const n = parseInt(el.dataset.count, 10);
+      if (!n) return;
+      let s = null;
+      function run(ts) {
+        if (!s) s = ts;
+        const p = Math.min((ts - s) / 700, 1);
+        el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * n);
+        if (p < 1) requestAnimationFrame(run);
+      }
+      setTimeout(() => requestAnimationFrame(run), 250);
+    });
+
+    /* ── Show all jobs ──────────────────────────────────── */
+    function showAll() {
+      document.querySelectorAll('.job-extra').forEach((el, i) => {
+        el.classList.remove('hidden');
+        el.style.animationDelay = (i * 35) + 'ms';
+      });
+      const btn = document.getElementById('more-btn');
+      if (btn) btn.style.display = 'none';
+    }
+
+    /* ── Copy link ──────────────────────────────────────── */
+    function copyLink() {
+      const btn = document.querySelector('.copy-btn');
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#ECFDF5';
+        btn.style.color = '#059669';
+        btn.style.borderColor = '#A7F3D0';
+        setTimeout(() => {
+          btn.textContent = 'Copy Report Link';
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 2000);
+      }).catch(() => {
+        btn.textContent = 'Copy failed';
+        setTimeout(() => { btn.textContent = 'Copy Report Link'; }, 2000);
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skill Gap Radar — Analyze Your Career Gap</title>
+    <meta name="description"
+        content="Find out which skills you need to land your target role. Powered by live job postings." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #EEF2FF;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* ─── Page wrapper ─────────────────────────────── */
+        .wrap {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        /* ─── Card ─────────────────────────────────────── */
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 40px 36px 36px;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, .08),
+                0 8px 32px rgba(99, 102, 241, .10),
+                0 24px 64px rgba(99, 102, 241, .06);
+        }
+
+        /* ─── Brand ─────────────────────────────────────── */
+        .brand {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .brand-chip {
+            display: inline-block;
+            background: #EEF2FF;
+            color: #4F46E5;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 999px;
+            margin-bottom: 16px;
+        }
+
+        .brand-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            letter-spacing: -.02em;
+            line-height: 1.2;
+        }
+
+        .brand-sub {
+            margin-top: 8px;
+            font-size: 15px;
+            color: #6B7280;
+            line-height: 1.6;
+        }
+
+        .brand-sub strong {
+            color: #374151;
+            font-weight: 600;
+        }
+
+        /* ─── Form elements ─────────────────────────────── */
+        .field {
+            margin-bottom: 18px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #6B7280;
+            margin-bottom: 7px;
+        }
+
+        .field label .opt {
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 11px;
+            color: #9CA3AF;
+        }
+
+        .field input,
+        .field select {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            color: #111827;
+            background: #F9FAFB;
+            border: 1.5px solid #E5E7EB;
+            border-radius: 10px;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+
+        .field input::placeholder {
+            color: #D1D5DB;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            background: #fff;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
+        }
+
+        .field select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'%3E%3Cpath fill='%239CA3AF' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* ─── Error ─────────────────────────────────────── */
+        .error-box {
+            display: none;
+            margin-bottom: 16px;
+            padding: 11px 14px;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 9px;
+            font-size: 14px;
+            color: #DC2626;
+        }
+
+        .error-box.show {
+            display: block;
+        }
+
+        /* ─── Submit button ─────────────────────────────── */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            background: #4F46E5;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background .2s, box-shadow .2s, transform .12s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #4338CA;
+            box-shadow: 0 4px 18px rgba(79, 70, 229, .35);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(.98);
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        /* shimmer sweep on hover */
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -80%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent);
+            transform: skewX(-18deg);
+            transition: left .5s ease;
+        }
+
+        .btn:hover:not(:disabled)::after {
+            left: 140%;
+        }
+
+        /* ─── Footer ────────────────────────────────────── */
+        .footer {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 13px;
+            color: #9CA3AF;
+        }
+
+        /* ═══ Loading Overlay ═══════════════════════════════
+       Hidden by default. JS adds .active to show it.
+       ═════════════════════════════════════════════════ */
+        #overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+
+            /* White frosted glass */
+            background: rgba(238, 242, 255, .90);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+
+            /* Hidden until .active */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .35s ease;
+        }
+
+        #overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #overlay.hiding {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* White card inside overlay */
+        .ov-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 48px 40px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            box-shadow:
+                0 4px 24px rgba(0, 0, 0, .08),
+                0 24px 64px rgba(99, 102, 241, .12);
+        }
+
+        /* Pulsing dot */
+        .ov-dot {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2.5px solid #C7D2FE;
+            margin: 0 auto 28px;
+            position: relative;
+        }
+
+        .ov-dot::before {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 2px solid #A5B4FC;
+        }
+
+        .ov-dot::after {
+            content: '';
+            position: absolute;
+            inset: 13px;
+            border-radius: 50%;
+            background: #4F46E5;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                transform: scale(.7);
+                opacity: .6;
+            }
+
+            50% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .ov-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+            letter-spacing: -.015em;
+            margin-bottom: 8px;
+        }
+
+        .ov-stage {
+            font-size: 14px;
+            color: #9CA3AF;
+            min-height: 22px;
+            transition: opacity .25s ease;
+        }
+
+        .ov-stage.fading {
+            opacity: 0;
+        }
+
+        /* Progress bar */
+        .ov-bar-track {
+            width: 100%;
+            height: 4px;
+            background: #F3F4F6;
+            border-radius: 999px;
+            margin-top: 28px;
+            overflow: hidden;
+        }
+
+        .ov-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4F46E5, #818CF8);
+            border-radius: 999px;
+            transition: width .65s cubic-bezier(.4, 0, .2, 1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══ Loading Overlay (hidden until JS shows it) ═════════════ -->
+    <div id="overlay" role="status" aria-live="polite">
+        <div class="ov-card">
+            <div class="ov-dot"></div>
+            <div class="ov-title">Analyzing Live Job Market</div>
+            <div class="ov-stage" id="ov-stage">Fetching job postings...</div>
+            <div class="ov-bar-track">
+                <div class="ov-bar-fill" id="ov-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Main form card ═════════════════════════════════════════ -->
+    <div class="wrap">
+        <div class="card">
+            <div class="brand">
+                <div class="brand-chip">Powered by Live Job Data</div>
+                <h1 class="brand-title">Skill Gap Radar</h1>
+                <p class="brand-sub">
+                    See which skills are in demand for your target role,<br>
+                    based on <strong>live job postings</strong>.
+                </p>
+            </div>
+
+            <form id="form" novalidate>
+
+                <div class="field">
+                    <label for="target_role">Target role <span style="color:#EF4444">*</span></label>
+                    <input id="target_role" type="text" required placeholder="e.g. Data Engineer, ML Engineer" />
+                </div>
+
+                <div class="field">
+                    <label for="current_role">
+                        Current role
+                        <span class="opt">(enables gap detection)</span>
+                    </label>
+                    <select id="current_role">
+                        <option value="__other__" selected>Other / Not listed — Market-only analysis</option>
+                        <option value="Data Analyst">Data Analyst</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Data Engineer">Data Engineer</option>
+                        <option value="Senior Data Engineer">Senior Data Engineer</option>
+                        <option value="Analytics Engineer">Analytics Engineer</option>
+                        <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                        <option value="ML Ops Engineer">ML Ops Engineer</option>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Backend Engineer">Backend Engineer</option>
+                        <option value="Senior Backend Engineer">Senior Backend Engineer</option>
+                        <option value="Frontend Engineer">Frontend Engineer</option>
+                        <option value="Full Stack Engineer">Full Stack Engineer</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Platform Engineer">Platform Engineer</option>
+                    </select>
+                </div>
+
+                <div class="row-2">
+                    <div class="field">
+                        <label for="location">Location</label>
+                        <input id="location" type="text" value="remote" placeholder="remote, London..." />
+                    </div>
+                    <div class="field">
+                        <label for="exp">Level</label>
+                        <select id="exp">
+                            <option value="mid" selected>Mid</option>
+                            <option value="entry">Entry / Junior</option>
+                            <option value="senior">Senior</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="error-box" id="err"></div>
+
+                <button class="btn" id="submit-btn" type="submit">Analyze Role</button>
+            </form>
+        </div>
+
+        <p class="footer">Data sourced from live job postings via Adzuna. No descriptions stored.</p>
+    </div>
+
+    <script>
+        const STAGES = [
+            'Fetching job postings...',
+            'Extracting skills from descriptions...',
+            'Calculating market demand...',
+            'Comparing against your baseline...',
+            'Scoring representative roles...',
+        ];
+        const PCTS = [18, 38, 57, 74, 85];
+
+        let timer = null;
+        let si = 0;
+
+        const overlay = document.getElementById('overlay');
+        const stageEl = document.getElementById('ov-stage');
+        const barEl = document.getElementById('ov-bar');
+        const errEl = document.getElementById('err');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function showErr(msg) {
+            errEl.textContent = msg;
+            errEl.classList.add('show');
+        }
+        function clearErr() {
+            errEl.textContent = '';
+            errEl.classList.remove('show');
+        }
+
+        function showOverlay() {
+            si = 0;
+            stageEl.textContent = STAGES[0];
+            stageEl.classList.remove('fading');
+            barEl.style.transition = 'none';
+            barEl.style.width = '0%';
+            overlay.classList.remove('hiding');
+            overlay.classList.add('active');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+
+            requestAnimationFrame(() => {
+                barEl.style.transition = 'width .65s cubic-bezier(.4,0,.2,1)';
+                barEl.style.width = PCTS[0] + '%';
+            });
+
+            timer = setInterval(() => {
+                si++;
+                if (si >= STAGES.length) { clearInterval(timer); return; }
+                stageEl.classList.add('fading');
+                setTimeout(() => {
+                    stageEl.textContent = STAGES[si];
+                    stageEl.classList.remove('fading');
+                }, 250);
+                barEl.style.width = PCTS[si] + '%';
+            }, 2000);
+        }
+
+        function hideOverlay(then) {
+            clearInterval(timer);
+            barEl.style.transition = 'width .4s ease';
+            barEl.style.width = '100%';
+            setTimeout(() => {
+                overlay.classList.add('hiding');
+                overlay.classList.remove('active');
+                setTimeout(then, 360);
+            }, 400);
+        }
+
+        function resetBtn() {
+            clearInterval(timer);
+            overlay.classList.add('hiding');
+            overlay.classList.remove('active');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Analyze Role';
+        }
+
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErr();
+
+            const target = document.getElementById('target_role').value.trim();
+            if (!target) {
+                showErr('Please enter a target role.');
+                document.getElementById('target_role').focus();
+                return;
+            }
+
+            const sel = document.getElementById('current_role').value;
+            const cr = sel === '__other__' ? null : sel;
+
+            const payload = {
+                target_role: target,
+                ...(cr ? { current_role: cr } : {}),
+                location: document.getElementById('location').value.trim() || 'remote',
+                experience_lvl: document.getElementById('exp').value,
+            };
+
+            showOverlay();
+
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    hideOverlay(() => { window.location.href = '/report/' + data.slug; });
+                    return;
+                }
+
+                const data = await res.json().catch(() => ({}));
+                resetBtn();
+                if (res.status === 422) showErr(data.detail || 'No jobs found. Try a broader title.');
+                else if (res.status === 504) showErr('Analysis timed out. Try a different role or location.');
+                else showErr('Something went wrong. Please try again.');
+
+            } catch (_) {
+                resetBtn();
+                showErr('Could not reach the server. Check your connection and try again.');
+            }
+        });
+    </script>
+</body>
+
+</html>
