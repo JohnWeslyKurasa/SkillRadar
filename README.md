@@ -2,6 +2,7 @@
 
 > **Market-driven career intelligence engine.**  
 > Analyzes job postings to identify demanded skills and surface your skill gaps.
+> Demo: https://skillradar-v6as.onrender.com/
 
 ---
 
